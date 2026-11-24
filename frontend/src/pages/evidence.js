@@ -14,7 +14,9 @@ export function evidencePage(state, identity) {
     : state.session.role==='reviewer'?'<form id="review-form"><label>复核意见<textarea name="note" maxlength="500" required></textarea></label><button>签署复核</button></form>'
     : '<p class="note">待复核员签署</p>';
   const history = state.evidence.map(row=>[`<a href="#evidence/${row.id}">执行 ${row.run_id}</a>`, esc(row.report.summary), esc(row.reviewer || '待复核')]);
-  return `${heading(topic.modules[3], report.summary, `<button id="download" data-id="${current.id}">导出证据</button>`)}
+  const caseRun = state.runs.find(row=>row.id===current.run_id);
+  const adoptionLink = caseRun ? `<a class="secondary" href="#correction/${caseRun.case_id}">各月证据采用与选月更正</a>` : '';
+  return `${heading(topic.modules[3], report.summary, `<button id="download" data-id="${current.id}">导出证据</button>${adoptionLink}`)}
     <div class="spread evidence-top"><dl class="metrics">${metrics}</dl><aside class="brief"><h2>复核签署</h2>${review}<details><summary>结果校验码</summary><code class="digest">${esc(current.digest)}</code></details></aside></div>
     ${sections}<details><summary>历史证据</summary>${records(['执行','结论','复核'], history)}</details>`;
 }

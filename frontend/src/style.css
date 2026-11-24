@@ -92,3 +92,7 @@ summary { cursor:pointer; font-weight:600; color:var(--accent-dark); }
   th,td { padding:.5rem .55rem; }
 }
 @media (prefers-reduced-motion: reduce) { *,*::before,*::after { transition: none !important; } }
+dialog { border: 1px solid var(--line); border-radius: var(--radius); background: var(--sheet); color: var(--ink); padding: 1.6rem; max-width: 32rem; width: calc(100% - 2rem); }
+dialog::backdrop { background: rgba(0,0,0,.38); }
+dialog form { display: grid; gap: 1rem; }
+dialog h2 { margin-bottom: .2rem; }

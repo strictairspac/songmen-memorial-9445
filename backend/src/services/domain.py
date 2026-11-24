@@ -116,6 +116,58 @@ def validate(payload):
     _parse(payload)
 
 
+def parse_month(value, label='更正月份'):
+    start = _read_date(value, label)
+    if start.day != 1:
+        raise ValueError(f'{label}须为月初日期（YYYY-MM-01）')
+    return start
+
+
+def registered_months(payload):
+    _, months, _ = _parse(payload)
+    return [month.start.isoformat()[:7] for month in months]
+
+
+def validate_correction(payload, month_value):
+    """更正登记只允许改分区登记状态：凭条与截止日原样沿用，月份必须已登记在案。"""
+    _, months, _ = _parse(payload)
+    target = parse_month(month_value)
+    if target not in {month.start for month in months}:
+        raise ValueError(f'月份 {target:%Y-%m} 不在原档案的月分区登记簿中，无法只复算该月')
+    return target
+
+
+def apply_correction(payload, month_value, corrected_state):
+    """沿用原凭条和截止日，仅替换选中月份的分区登记行，其余月份保持原样。"""
+    target = validate_correction(payload, month_value)
+    if corrected_state not in (REGISTERED, PENDING):
+        raise ValueError('分区登记状态须为「在册」或「待挂载」')
+    corrected = dict(payload)
+    partitions = []
+    replaced = False
+    for row in payload['partitions']:
+        row = dict(row)
+        if _read_date(row.get('month'), '月初日期') == target:
+            row['state'] = corrected_state
+            replaced = True
+        partitions.append(row)
+    if not replaced:
+        raise ValueError(f'月份 {target:%Y-%m} 的分区登记行不存在')
+    corrected['partitions'] = partitions
+    return corrected, target
+
+
+def solve_correction(payload, month_value, corrected_state, engine):
+    corrected, target = apply_correction(payload, month_value, corrected_state)
+    report = solve(corrected, engine)
+    report['correction'] = {
+        'month': target.isoformat()[:7],
+        'corrected_state': corrected_state,
+        'basis': '原档案凭条与保留截止日原样沿用，仅复算选中月份的分区登记。',
+    }
+    return report
+
+
 def _read_slips(conn, tables):
     observed = {}
     for table in tables:
